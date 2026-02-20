@@ -32,6 +32,7 @@ func main() {
 	// API Auth Routes
 	http.HandleFunc("/api/register", RegisterHandler)
 	http.HandleFunc("/api/login", LoginHandler)
+	http.HandleFunc("/api/logout", LogoutHandler)
 	http.HandleFunc("/api/session", SessionHandler)
 
 	// WebSocket Route

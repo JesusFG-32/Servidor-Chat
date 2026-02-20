@@ -12,13 +12,23 @@ function showToast(msg) {
 }
 
 // Navigation
-function showView(viewId, modeCtx = null, pushState = true) {
+async function showView(viewId, modeCtx = null, pushState = true) {
+    // Security check before rendering chat
+    if (viewId === 'chat-view') {
+        const isLogged = await checkSession();
+        if (!isLogged) {
+            showToast("Inicia sesión para usar el chat.");
+            showView('welcome-view', null, pushState);
+            return;
+        }
+    }
+
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.getElementById(viewId).classList.add('active');
 
     if (viewId === 'welcome-view') {
         if (pushState && window.location.pathname !== '/') history.pushState({}, '', '/');
-        renderWelcomeActions();
+        await renderWelcomeActions();
     } else if (viewId === 'auth-view') {
         if (modeCtx === 'register') {
             setAuthMode('register');
@@ -27,7 +37,7 @@ function showView(viewId, modeCtx = null, pushState = true) {
         }
     } else if (viewId === 'chat-view') {
         if (pushState && window.location.pathname !== '/chat') history.pushState({}, '', '/chat');
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
+        if (!ws || (ws.readyState !== WebSocket.OPEN && ws.readyState !== WebSocket.CONNECTING)) {
             connectWebSocket();
         }
     }
@@ -120,9 +130,13 @@ async function handleAuth(e) {
 }
 
 // Logout
-function logout() {
-    // Delete local cookie token by making it expire
-    document.cookie = "token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+async function logout() {
+    try {
+        await fetch('/api/logout', { method: 'POST' });
+    } catch (e) {
+        console.error("Error during logout:", e);
+    }
+
     currentUsername = "";
     if (ws) {
         ws.close();
@@ -226,18 +240,11 @@ window.addEventListener('popstate', () => {
 
 async function routeBasedOnURL(pushState = true) {
     const path = window.location.pathname;
-    const isLogged = await checkSession();
 
     if (path === '/chat') {
-        if (isLogged) {
-            showView('chat-view', null, pushState);
-        } else {
-            // No session -> force home page
-            showToast("Inicia sesión para usar el chat");
-            showView('welcome-view', null, pushState);
-        }
+        await showView('chat-view', null, pushState);
     } else {
-        showView('welcome-view', null, pushState);
+        await showView('welcome-view', null, pushState);
     }
 }
 

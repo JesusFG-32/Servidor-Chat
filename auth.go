@@ -146,11 +146,32 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"token": tokenString})
 }
 
+func LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "token",
+		Value:    "",
+		Expires:  time.Now().Add(-1 * time.Hour),
+		MaxAge:   -1,
+		HttpOnly: true,
+		Path:     "/",
+	})
+
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "Logged out successfully")
+}
+
 func SessionHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
 
 	cookie, err := r.Cookie("token")
 	if err != nil {
