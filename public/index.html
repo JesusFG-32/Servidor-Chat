@@ -79,16 +79,20 @@
                         </ul>
                     </aside>
 
-                    <!-- Main Chat Messages -->
-                    <div class="messages" id="messages-container" style="flex: 1;">
-                        <!-- Los mensajes se insertan dinámicamente aquí -->
+                    <!-- Lado Derecho: Mensajes + Caja de Entrada -->
+                    <div style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
+                        <!-- Main Chat Messages -->
+                        <div class="messages" id="messages-container" style="flex: 1;">
+                            <!-- Los mensajes se insertan dinámicamente aquí -->
+                        </div>
+
+                        <form class="chat-input-area" id="chat-form" onsubmit="sendMessage(event)">
+                            <input type="text" id="message-input" placeholder="Escribe un mensaje..."
+                                autocomplete="off">
+                            <button type="submit" class="btn-primary">Enviar</button>
+                        </form>
                     </div>
                 </div>
-
-                <form class="chat-input-area" id="chat-form" onsubmit="sendMessage(event)">
-                    <input type="text" id="message-input" placeholder="Escribe un mensaje..." autocomplete="off">
-                    <button type="submit" class="btn-primary">Enviar</button>
-                </form>
             </div>
         </div>
     </div>
