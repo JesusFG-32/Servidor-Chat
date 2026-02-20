@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JesChat</title>
+    <link rel="stylesheet" href="index.css">
+</head>
+
+<body>
+
+    <div id="toast">Notificación</div>
+
+    <div id="app">
+        <!-- 1. Vista de Bienvenida -->
+        <div id="welcome-view" class="view active glass-panel">
+            <div class="hero-content">
+                <h1>JesChat</h1>
+                <p>Conéctate con el mundo en tiempo real con una experiencia fluida y moderna.</p>
+                <div id="welcome-actions" style="display: flex; gap: 16px; justify-content: center;">
+                    <!-- Los botones se insertan por JS dependiendo si hay sesión -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Vista de Autenticación (Login/Registro) -->
+        <div id="auth-view" class="view">
+            <div class="auth-card glass-panel">
+                <h2 id="auth-title">Iniciar Sesión</h2>
+                <form id="auth-form" onsubmit="handleAuth(event)">
+                    <div class="form-group" id="group-username">
+                        <label>Nombre de Usuario</label>
+                        <input type="text" id="auth-username" required>
+                    </div>
+                    <div class="form-group" id="group-email" style="display:none;">
+                        <label>Correo Electrónico</label>
+                        <input type="email" id="auth-email">
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" id="auth-password" required>
+                    </div>
+                    <button type="submit" class="btn-primary" style="width:100%; margin-top: 8px;"
+                        id="auth-submit-btn">Entrar</button>
+                </form>
+                <div class="auth-toggle">
+                    <span id="auth-toggle-text">¿No tienes cuenta? <a onclick="toggleAuthMode()">Regístrate</a></span>
+                </div>
+                <div style="margin-top:20px; text-align:center;">
+                    <button class="btn-ghost" onclick="showView('welcome-view')" style="font-size:12px;">Volver al
+                        inicio</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. Vista Principal del Chat -->
+        <div id="chat-view" class="view">
+            <header class="chat-header">
+                <div class="header-left">
+                    <div class="logo">JesChat</div>
+                    <nav class="header-nav">
+                        <!-- Botones de Inicio y Chat a la izquierda -->
+                        <button class="btn-ghost" onclick="showView('welcome-view')">Inicio</button>
+                        <button class="btn-primary" onclick="showView('chat-view')">Chat</button>
+                    </nav>
+                </div>
+                <!-- Botón de salir a la derecha -->
+                <button class="btn-ghost" onclick="logout()" style="color: #ff7b72;">Salir</button>
+            </header>
+
+            <div class="chat-container glass-panel">
+                <div class="chat-main-area" style="display: flex; flex: 1; overflow: hidden;">
+                    <!-- Sidebar Usuarios Conectados -->
+                    <aside class="users-sidebar">
+                        <div class="users-header">Conectados (<span id="users-count">0</span>)</div>
+                        <ul id="active-users-list">
+                            <!-- Los usuarios se poblan dinamicamente via JS -->
+                        </ul>
+                    </aside>
+
+                    <!-- Main Chat Messages -->
+                    <div class="messages" id="messages-container" style="flex: 1;">
+                        <!-- Los mensajes se insertan dinámicamente aquí -->
+                    </div>
+                </div>
+
+                <form class="chat-input-area" id="chat-form" onsubmit="sendMessage(event)">
+                    <input type="text" id="message-input" placeholder="Escribe un mensaje..." autocomplete="off">
+                    <button type="submit" class="btn-primary">Enviar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+
+</html>
