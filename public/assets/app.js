@@ -1,8 +1,6 @@
-let currentAuthMode = 'login'; // 'login' or 'register'
+let currentAuthMode = 'login';
 let ws = null;
 let currentUsername = "";
-
-// Utils
 
 function showToast(msg) {
     const toast = document.getElementById('toast');
@@ -11,9 +9,7 @@ function showToast(msg) {
     setTimeout(() => { toast.classList.remove('show'); }, 3000);
 }
 
-// Navigation
 async function showView(viewId, modeCtx = null, pushState = true) {
-    // Security check before rendering chat
     if (viewId === 'chat-view') {
         const isLogged = await checkSession();
         if (!isLogged) {
@@ -72,7 +68,6 @@ async function renderWelcomeActions() {
     }
 }
 
-// Auth Mode Toggle
 function toggleAuthMode() {
     setAuthMode(currentAuthMode === 'login' ? 'register' : 'login');
 }
@@ -91,7 +86,6 @@ function setAuthMode(mode) {
         : `¿No tienes cuenta? <a onclick="toggleAuthMode()">Regístrate</a>`;
 }
 
-// Auth Submission
 async function handleAuth(e) {
     e.preventDefault();
     const username = document.getElementById('auth-username').value;
@@ -113,7 +107,6 @@ async function handleAuth(e) {
         if (response.ok) {
             if (currentAuthMode === 'register') {
                 showToast("Registro exitoso. Iniciando sesión...");
-                // Auto login after reg
                 setAuthMode('login');
                 await handleAuth(new Event('submit'));
             } else {
@@ -129,7 +122,6 @@ async function handleAuth(e) {
     }
 }
 
-// Logout
 async function logout() {
     try {
         await fetch('/api/logout', { method: 'POST' });
@@ -146,7 +138,6 @@ async function logout() {
     showView('welcome-view');
 }
 
-// WebSocket Management
 function connectWebSocket() {
     const loc = window.location;
     let wsUri = "ws:";
@@ -155,14 +146,11 @@ function connectWebSocket() {
     }
     wsUri += "//" + loc.host + "/ws";
 
-    // Si tenemos JWT en JS podemos pasar ?token=, 
-    // pero el navegador envía la cookie HttpOnly automáticamente a wss://
-
     ws = new WebSocket(wsUri);
 
     ws.onopen = () => {
         showToast("Conectado al chat");
-        document.getElementById('messages-container').innerHTML = ''; // reset history on reconnect
+        document.getElementById('messages-container').innerHTML = '';
     };
 
     ws.onmessage = (evt) => {
