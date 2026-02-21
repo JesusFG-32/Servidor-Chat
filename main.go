@@ -25,10 +25,20 @@ func main() {
 	os.MkdirAll("public", os.ModePerm)
 
 	fs := http.FileServer(http.Dir("./public"))
+
+	http.HandleFunc("/inicio", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "./public/index.html")
+	})
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/" {
+			http.Redirect(w, r, "/inicio", http.StatusFound)
+			return
+		}
+
 		path := "./public" + r.URL.Path
 		if _, err := os.Stat(path); os.IsNotExist(err) && r.URL.Path != "/" {
-			http.ServeFile(w, r, "./public/index.html")
+			http.Redirect(w, r, "/inicio", http.StatusFound)
 			return
 		}
 		fs.ServeHTTP(w, r)
