@@ -113,8 +113,6 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-
-	// Update last connection
 	_, _ = DB.Exec("UPDATE users SET last_connection = CURRENT_TIMESTAMP WHERE id = ?", user.ID)
 
 	expirationTime := time.Now().Add(24 * time.Hour)
@@ -137,11 +135,14 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		Name:     "token",
 		Value:    tokenString,
 		Expires:  expirationTime,
-		HttpOnly: true,
-		Path:     "/app/chat/",
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
 	})
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"token": tokenString})
+	json.NewEncoder(w).Encode(map[string]string{
+		"username": user.Username,
+		"token":    tokenString,
+	})
 }
 
 func LogoutHandler(w http.ResponseWriter, r *http.Request) {
@@ -155,8 +156,8 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Expires:  time.Now().Add(-1 * time.Hour),
 		MaxAge:   -1,
-		HttpOnly: true,
-		Path:     "/app/chat/",
+		Path:     "/",
+		SameSite: http.SameSiteLaxMode,
 	})
 
 	w.WriteHeader(http.StatusOK)
@@ -171,24 +172,46 @@ func SessionHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
 
-	cookie, err := r.Cookie("token")
-	if err != nil {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
+	var validToken *jwt.Token
+	var validClaims *Claims
+
+	for _, cookie := range r.Cookies() {
+		if cookie.Name == "token" {
+			claims := &Claims{}
+			tkn, err := jwt.ParseWithClaims(cookie.Value, claims, func(token *jwt.Token) (interface{}, error) {
+				return jwtKey, nil
+			})
+			if err == nil && tkn.Valid {
+				validToken = tkn
+				validClaims = claims
+				break
+			}
+		}
 	}
 
-	claims := &Claims{}
-	tkn, err := jwt.ParseWithClaims(cookie.Value, claims, func(token *jwt.Token) (interface{}, error) {
-		return jwtKey, nil
-	})
-
-	if err != nil || !tkn.Valid {
+	if validToken == nil {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"username": claims.Username,
+		"username": validClaims.Username,
+		"token":    validToken.Raw,
 	})
+}
+
+func ValidateSession(r *http.Request) (bool, string) {
+	for _, cookie := range r.Cookies() {
+		if cookie.Name == "token" {
+			claims := &Claims{}
+			tkn, err := jwt.ParseWithClaims(cookie.Value, claims, func(token *jwt.Token) (interface{}, error) {
+				return jwtKey, nil
+			})
+			if err == nil && tkn.Valid {
+				return true, claims.Username
+			}
+		}
+	}
+	return false, ""
 }
