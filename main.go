@@ -26,6 +26,9 @@ func main() {
 
 	fs := http.FileServer(http.Dir("./public"))
 
+	staticFS := http.FileServer(http.Dir("./public/assets"))
+	http.Handle("/assets/", http.StripPrefix("/assets/", staticFS))
+
 	http.HandleFunc("/inicio", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "./public/index.html")
 	})
