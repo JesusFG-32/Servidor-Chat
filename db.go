@@ -22,23 +22,41 @@ type User struct {
 }
 
 func ConnectDB() {
-	// Try to get credentials from environment variables, fallback to defaults
 	user := os.Getenv("DB_USER")
 	if user == "" {
-		user = "chat_user"
+		log.Printf("La variable de entorno DB_USER no está establecida.\n")
+		log.Printf("Establece la variable de entorno DB_USER con el usuario de la base de datos.\n")
+		log.Printf("Saliendo dentro de 6 segundos...")
+		time.Sleep(6 * time.Second)
+		os.Exit(-2)
 	}
 
 	pass := os.Getenv("DB_PASS")
 	if pass == "" {
-		pass = "chat_pass"
+		log.Printf("La variable de entorno DB_PASS no está establecida.\n")
+		log.Printf("Establece la variable de entorno DB_PASS con la contraseña de la base de datos.\n")
+		log.Printf("Saliendo dentro de 6 segundos...")
+		time.Sleep(6 * time.Second)
+		os.Exit(-2)
 	}
 
 	host := os.Getenv("DB_HOST")
 	if host == "" {
-		host = "127.0.1.1:3306" // Typical on local linux
+		log.Printf("La variable de entorno DB_HOST no está establecida.\n")
+		log.Printf("Establece la variable de entorno DB_HOST con el host de la base de datos.\n")
+		log.Printf("Saliendo dentro de 6 segundos...")
+		time.Sleep(6 * time.Second)
+		os.Exit(-2)
 	}
 
-	dbname := "chat_app"
+	dbname := os.Getenv("DB_NAME")
+	if dbname == "" {
+		log.Printf("La variable de entorno DB_NAME no está establecida.\n")
+		log.Printf("Establece la variable de entorno DB_NAME con el nombre de la base de datos.\n")
+		log.Printf("Saliendo dentro de 6 segundos...")
+		time.Sleep(6 * time.Second)
+		os.Exit(-2)
+	}
 
 	var dsnNoDB string
 	if pass == "" {
@@ -49,8 +67,10 @@ func ConnectDB() {
 
 	dbInit, err := sql.Open("mysql", dsnNoDB)
 	if err != nil {
-		log.Printf("Failed to open initial DB connection: %v\n", err)
-		return
+		log.Printf("Algo fallo al abrir la conexión con la base de datos: %v\n", err)
+		log.Printf("Saliendo dentro de 6 segundos...")
+		time.Sleep(6 * time.Second)
+		os.Exit(-2)
 	}
 
 	for i := 0; i < 5; i++ {
@@ -62,22 +82,37 @@ func ConnectDB() {
 	}
 
 	if err != nil {
-		log.Printf("Failed to ping DB server, it might be down: %v\n", err)
+		log.Printf("No se pudo contactar al servidor de la base de datos, podría estar caído: %v\n", err)
 	} else {
-		schemaBytes, schemaErr := os.ReadFile("schema.sql")
-		if schemaErr == nil {
-			_, err = dbInit.Exec(string(schemaBytes))
-			if err != nil {
-				log.Printf("Failed to execute schema.sql: %v\n", err)
-			} else {
-				log.Println("Database and tables checked/created successfully!")
-			}
+		schemaQuery := fmt.Sprintf(`
+		CREATE DATABASE IF NOT EXISTS %s;
+		USE %s;
+		CREATE TABLE IF NOT EXISTS users (
+			id CHAR(36) PRIMARY KEY,
+			username VARCHAR(50) UNIQUE NOT NULL,
+			email VARCHAR(255) UNIQUE NOT NULL,
+			password_hash VARCHAR(255) NOT NULL,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			last_connection TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+		);`, dbname, dbname)
+
+		_, err = dbInit.Exec(schemaQuery)
+		if err != nil {
+			log.Printf("Algo fallo al inicializar la base de datos y tablas internas: %v\n", err)
 		} else {
-			log.Printf("Could not read schema.sql: %v\n", schemaErr)
-			// Fallback: just create the database
-			_, err = dbInit.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s;", dbname))
-			if err != nil {
-				log.Printf("Failed to create database: %v\n", err)
+			log.Println("Base de datos y tablas configuradas con éxito.")
+		}
+
+		hostname := "localhost"
+		if len(host) > 0 {
+			for i := 0; i < len(host); i++ {
+				if host[i] == ':' {
+					hostname = host[:i]
+					break
+				}
+			}
+			if hostname == host {
+				hostname = host
 			}
 		}
 	}
@@ -92,32 +127,15 @@ func ConnectDB() {
 
 	db, err := sql.Open("mysql", dsn)
 	if err != nil {
-		log.Printf("Failed to open DB connection: %v\n", err)
+		log.Printf("Algo fallo al abrir la conexión con la base de datos: %v\n", err)
 		return
 	}
 
 	err = db.Ping()
 	if err != nil {
-		log.Printf("Failed to connect to specific database: %v\n", err)
+		log.Printf("No se ha podido conectar con la base de datos especificada: %v\n", err)
 	} else {
-		log.Println("Database connection established!")
+		log.Println("Conexión con la base de datos establecida!")
 	}
-
-	createTableQuery := `
-	CREATE TABLE IF NOT EXISTS users (
-		id CHAR(36) PRIMARY KEY,
-		username VARCHAR(50) UNIQUE NOT NULL,
-		email VARCHAR(255) UNIQUE NOT NULL,
-		password_hash VARCHAR(255) NOT NULL,
-		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		last_connection TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-	);`
-	_, err = db.Exec(createTableQuery)
-	if err != nil {
-		log.Printf("Failed to ensure users table exists: %v\n", err)
-	} else {
-		log.Println("Users table checked/created successfully.")
-	}
-
 	DB = db
 }
