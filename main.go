@@ -29,30 +29,21 @@ func main() {
 	staticFS := http.FileServer(http.Dir("./public/assets"))
 	http.Handle("/assets/", http.StripPrefix("/assets/", staticFS))
 
-	http.HandleFunc("/inicio", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "./public/index.html")
-	})
-
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/" {
-			http.Redirect(w, r, "/inicio", http.StatusFound)
-			return
-		}
-
 		path := "./public" + r.URL.Path
 		if _, err := os.Stat(path); os.IsNotExist(err) && r.URL.Path != "/" {
-			http.Redirect(w, r, "/inicio", http.StatusFound)
+			http.ServeFile(w, r, "./public/index.html")
 			return
 		}
 		fs.ServeHTTP(w, r)
 	})
 
-	http.HandleFunc("/api/register", RegisterHandler)
-	http.HandleFunc("/api/login", LoginHandler)
-	http.HandleFunc("/api/logout", LogoutHandler)
-	http.HandleFunc("/api/session", SessionHandler)
+	http.HandleFunc("/app/chat/api/register", RegisterHandler)
+	http.HandleFunc("/app/chat/api/login", LoginHandler)
+	http.HandleFunc("/app/chat/api/logout", LogoutHandler)
+	http.HandleFunc("/app/chat/api/session", SessionHandler)
 
-	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/app/chat/ws", func(w http.ResponseWriter, r *http.Request) {
 		ServeWs(hub, w, r)
 	})
 
