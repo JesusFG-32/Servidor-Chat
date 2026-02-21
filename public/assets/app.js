@@ -41,7 +41,7 @@ async function showView(viewId, modeCtx = null, pushState = true) {
 
 async function checkSession() {
     try {
-        const res = await fetch('/api/session');
+        const res = await fetch('/app/chat/api/session');
         if (res.ok) {
             const data = await res.json();
             currentUsername = data.username;
@@ -95,7 +95,7 @@ async function handleAuth(e) {
     const payload = { username, password };
     if (currentAuthMode === 'register') payload.email = email;
 
-    const route = currentAuthMode === 'register' ? '/api/register' : '/api/login';
+    const route = currentAuthMode === 'register' ? '/app/chat/api/register' : '/app/chat/api/login';
 
     try {
         const response = await fetch(route, {
@@ -124,7 +124,7 @@ async function handleAuth(e) {
 
 async function logout() {
     try {
-        await fetch('/api/logout', { method: 'POST' });
+        await fetch('/app/chat/api/logout', { method: 'POST' });
     } catch (e) {
         console.error("Error during logout:", e);
     }
@@ -144,7 +144,7 @@ function connectWebSocket() {
     if (loc.protocol === "https:") {
         wsUri = "wss:";
     }
-    wsUri += "//" + loc.host + "/ws";
+    wsUri += "//" + loc.host + "/app/chat/ws";
 
     ws = new WebSocket(wsUri);
 
