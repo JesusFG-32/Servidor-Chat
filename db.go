@@ -40,7 +40,49 @@ func ConnectDB() {
 
 	dbname := "chat_app"
 
-	// DSN: user:password@tcp(host:port)/dbname?parseTime=true
+	var dsnNoDB string
+	if pass == "" {
+		dsnNoDB = fmt.Sprintf("%s@tcp(%s)/?parseTime=true&multiStatements=true", user, host)
+	} else {
+		dsnNoDB = fmt.Sprintf("%s:%s@tcp(%s)/?parseTime=true&multiStatements=true", user, pass, host)
+	}
+
+	dbInit, err := sql.Open("mysql", dsnNoDB)
+	if err != nil {
+		log.Printf("Failed to open initial DB connection: %v\n", err)
+		return
+	}
+
+	for i := 0; i < 5; i++ {
+		err = dbInit.Ping()
+		if err == nil {
+			break
+		}
+		time.Sleep(1 * time.Second)
+	}
+
+	if err != nil {
+		log.Printf("Failed to ping DB server, it might be down: %v\n", err)
+	} else {
+		schemaBytes, schemaErr := os.ReadFile("schema.sql")
+		if schemaErr == nil {
+			_, err = dbInit.Exec(string(schemaBytes))
+			if err != nil {
+				log.Printf("Failed to execute schema.sql: %v\n", err)
+			} else {
+				log.Println("Database and tables checked/created successfully!")
+			}
+		} else {
+			log.Printf("Could not read schema.sql: %v\n", schemaErr)
+			// Fallback: just create the database
+			_, err = dbInit.Exec(fmt.Sprintf("CREATE DATABASE IF NOT EXISTS %s;", dbname))
+			if err != nil {
+				log.Printf("Failed to create database: %v\n", err)
+			}
+		}
+	}
+	dbInit.Close()
+
 	var dsn string
 	if pass == "" {
 		dsn = fmt.Sprintf("%s@tcp(%s)/%s?parseTime=true", user, host, dbname)
@@ -54,19 +96,27 @@ func ConnectDB() {
 		return
 	}
 
-	// Wait for DB to be available up to 5 seconds
-	for i := 0; i < 5; i++ {
-		err = db.Ping()
-		if err == nil {
-			break
-		}
-		time.Sleep(1 * time.Second)
-	}
-
+	err = db.Ping()
 	if err != nil {
-		log.Printf("Failed to ping DB, it might be down: %v\n", err)
+		log.Printf("Failed to connect to specific database: %v\n", err)
 	} else {
 		log.Println("Database connection established!")
+	}
+
+	createTableQuery := `
+	CREATE TABLE IF NOT EXISTS users (
+		id CHAR(36) PRIMARY KEY,
+		username VARCHAR(50) UNIQUE NOT NULL,
+		email VARCHAR(255) UNIQUE NOT NULL,
+		password_hash VARCHAR(255) NOT NULL,
+		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+		last_connection TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+	);`
+	_, err = db.Exec(createTableQuery)
+	if err != nil {
+		log.Printf("Failed to ensure users table exists: %v\n", err)
+	} else {
+		log.Println("Users table checked/created successfully.")
 	}
 
 	DB = db
