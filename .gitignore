@@ -1,3 +1,4 @@
-jeschat-arm64
-jeschat-amd64
-server
+jeschat-amd64.exe
+jeschat-arm64.exe
+jeschat-linux-amd64
+jeschat-linux-arm64
