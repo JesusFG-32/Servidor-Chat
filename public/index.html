@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JesChat</title>
-    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="/app/chat/assets/index.css">
 </head>
 
 <body>
@@ -13,18 +13,15 @@
     <div id="toast">Notificación</div>
 
     <div id="app">
-        <!-- 1. Vista de Bienvenida -->
         <div id="welcome-view" class="view active glass-panel">
             <div class="hero-content">
                 <h1>JesChat</h1>
                 <p>Conéctate con el mundo en tiempo real con una experiencia fluida y moderna.</p>
                 <div id="welcome-actions" style="display: flex; gap: 16px; justify-content: center;">
-                    <!-- Los botones se insertan por JS dependiendo si hay sesión -->
                 </div>
             </div>
         </div>
 
-        <!-- 2. Vista de Autenticación (Login/Registro) -->
         <div id="auth-view" class="view">
             <div class="auth-card glass-panel">
                 <h2 id="auth-title">Iniciar Sesión</h2>
@@ -54,36 +51,28 @@
             </div>
         </div>
 
-        <!-- 3. Vista Principal del Chat -->
         <div id="chat-view" class="view">
             <header class="chat-header">
                 <div class="header-left">
                     <div class="logo">JesChat</div>
                     <nav class="header-nav">
-                        <!-- Botones de Inicio y Chat a la izquierda -->
                         <button class="btn-ghost" onclick="showView('welcome-view')">Inicio</button>
                         <button class="btn-primary" onclick="showView('chat-view')">Chat</button>
                     </nav>
                 </div>
-                <!-- Botón de salir a la derecha -->
                 <button class="btn-ghost" onclick="logout()" style="color: #ff7b72;">Salir</button>
             </header>
 
             <div class="chat-container glass-panel">
                 <div class="chat-main-area" style="display: flex; flex: 1; overflow: hidden;">
-                    <!-- Sidebar Usuarios Conectados -->
                     <aside class="users-sidebar">
                         <div class="users-header">Conectados (<span id="users-count">0</span>)</div>
                         <ul id="active-users-list">
-                            <!-- Los usuarios se poblan dinamicamente via JS -->
                         </ul>
                     </aside>
 
-                    <!-- Lado Derecho: Mensajes + Caja de Entrada -->
                     <div style="display: flex; flex-direction: column; flex: 1; overflow: hidden;">
-                        <!-- Main Chat Messages -->
                         <div class="messages" id="messages-container" style="flex: 1;">
-                            <!-- Los mensajes se insertan dinámicamente aquí -->
                         </div>
 
                         <form class="chat-input-area" id="chat-form" onsubmit="sendMessage(event)">
@@ -96,7 +85,7 @@
             </div>
         </div>
     </div>
-    <script src="app.js"></script>
+    <script src="/app/chat/assets/app.js"></script>
 </body>
 
 </html>
