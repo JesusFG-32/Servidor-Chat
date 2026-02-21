@@ -137,11 +137,9 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		Name:     "token",
 		Value:    tokenString,
 		Expires:  expirationTime,
-		HttpOnly: true, // Security best practice: prevent JS access
-		Path:     "/",
+		HttpOnly: true,
+		Path:     "/app/chat/",
 	})
-
-	// Also return token in JSON for our frontend if needed
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"token": tokenString})
 }
@@ -158,7 +156,7 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		Expires:  time.Now().Add(-1 * time.Hour),
 		MaxAge:   -1,
 		HttpOnly: true,
-		Path:     "/",
+		Path:     "/app/chat/",
 	})
 
 	w.WriteHeader(http.StatusOK)

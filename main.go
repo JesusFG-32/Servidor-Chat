@@ -29,15 +29,6 @@ func main() {
 	staticFS := http.FileServer(http.Dir("./public/assets"))
 	http.Handle("/assets/", http.StripPrefix("/assets/", staticFS))
 
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		path := "./public" + r.URL.Path
-		if _, err := os.Stat(path); os.IsNotExist(err) && r.URL.Path != "/" {
-			http.ServeFile(w, r, "./public/index.html")
-			return
-		}
-		fs.ServeHTTP(w, r)
-	})
-
 	http.HandleFunc("/app/chat/api/register", RegisterHandler)
 	http.HandleFunc("/app/chat/api/login", LoginHandler)
 	http.HandleFunc("/app/chat/api/logout", LogoutHandler)
@@ -45,6 +36,23 @@ func main() {
 
 	http.HandleFunc("/app/chat/ws", func(w http.ResponseWriter, r *http.Request) {
 		ServeWs(hub, w, r)
+	})
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		urlPath := r.URL.Path
+		if len(urlPath) >= 9 && urlPath[:9] == "/app/chat" {
+			urlPath = urlPath[9:]
+			if urlPath == "" {
+				urlPath = "/"
+			}
+		}
+		path := "./public" + urlPath
+		if _, err := os.Stat(path); os.IsNotExist(err) && urlPath != "/" {
+			http.ServeFile(w, r, "./public/index.html")
+			return
+		}
+		r.URL.Path = urlPath
+		fs.ServeHTTP(w, r)
 	})
 
 	port := os.Getenv("PORT")
