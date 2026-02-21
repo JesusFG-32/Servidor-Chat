@@ -100,13 +100,25 @@ func (c *Client) readPump() {
 		c.hub.unregister <- c
 		c.conn.Close()
 	}()
+	c.conn.SetReadDeadline(time.Now().Add(15 * time.Second))
+	c.conn.SetPongHandler(func(string) error {
+		c.conn.SetReadDeadline(time.Now().Add(15 * time.Second))
+		return nil
+	})
+
 	for {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
 			}
+			log.Printf("readPump error or closure for user %s: %v", c.Username, err)
 			break
+		}
+
+		if string(message) == `{"type":"ping"}` {
+			c.conn.SetReadDeadline(time.Now().Add(15 * time.Second))
+			continue
 		}
 
 		msg := WSMessage{
@@ -120,7 +132,7 @@ func (c *Client) readPump() {
 }
 
 func (c *Client) writePump() {
-	ticker := time.NewTicker(54 * time.Second)
+	ticker := time.NewTicker(5 * time.Second)
 	defer func() {
 		ticker.Stop()
 		c.conn.Close()
@@ -129,12 +141,15 @@ func (c *Client) writePump() {
 		select {
 		case message, ok := <-c.send:
 			if !ok {
+				log.Printf("writePump closing: send channel closed for user %s", c.Username)
 				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
+			c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			w, err := c.conn.NextWriter(websocket.TextMessage)
 			if err != nil {
+				log.Printf("writePump closing: NextWriter error for user %s: %v", c.Username, err)
 				return
 			}
 			w.Write(message)
@@ -146,11 +161,13 @@ func (c *Client) writePump() {
 			}
 
 			if err := w.Close(); err != nil {
+				log.Printf("writePump closing: writer close error for user %s: %v", c.Username, err)
 				return
 			}
 		case <-ticker.C:
 			c.conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				log.Printf("writePump closing: PingMessage fail for user %s: %v", c.Username, err)
 				return
 			}
 		}
@@ -159,21 +176,41 @@ func (c *Client) writePump() {
 
 func ServeWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
 	tokenString := r.URL.Query().Get("token")
-	if tokenString == "" {
-		cookie, err := r.Cookie("token")
-		if err != nil {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
+	var validToken *jwt.Token
+	var claims *Claims
+
+	// Try query parameter first
+	if tokenString != "" {
+		c := &Claims{}
+		t, err := jwt.ParseWithClaims(tokenString, c, func(token *jwt.Token) (interface{}, error) {
+			return jwtKey, nil
+		})
+		log.Printf("WS Auth Debug [Query] - Token: %s, Parse Error: %v", tokenString, err)
+		if err == nil && t.Valid {
+			validToken = t
+			claims = c
 		}
-		tokenString = cookie.Value
 	}
 
-	claims := &Claims{}
-	tkn, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-		return jwtKey, nil
-	})
+	if validToken == nil {
+		for _, cookie := range r.Cookies() {
+			if cookie.Name == "token" {
+				c := &Claims{}
+				t, err := jwt.ParseWithClaims(cookie.Value, c, func(token *jwt.Token) (interface{}, error) {
+					return jwtKey, nil
+				})
+				log.Printf("WS Auth Debug [Cookie] - Parse Error: %v", err)
+				if err == nil && t.Valid {
+					validToken = t
+					claims = c
+					break
+				}
+			}
+		}
+	}
 
-	if err != nil || !tkn.Valid {
+	if validToken == nil {
+		log.Println("WS Auth Debug - No valid token found, rejecting connection")
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
