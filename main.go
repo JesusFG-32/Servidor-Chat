@@ -4,6 +4,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -11,7 +12,11 @@ import (
 func main() {
 	err := godotenv.Load("config.env")
 	if err != nil {
-		log.Println("No config.env file found, using default environment variables")
+		log.Println("No se encontró el archivo config.env.")
+		log.Println("Se creará un archivo nuevo y el servidor se detendrá.")
+		os.WriteFile("config.env", []byte("DB_USER=root\nDB_PASS=\nDB_HOST=[IP_ADDRESS]"), 0644)
+		time.Sleep(5 * time.Second)
+		os.Exit(1)
 	}
 	ConnectDB()
 	hub := NewHub()
@@ -43,7 +48,7 @@ func main() {
 		port = "8080"
 	}
 
-	log.Printf("Server running on port %s", port)
+	log.Printf("Servidor corriendo en puerto %s", port)
 	err = http.ListenAndServe(":"+port, nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
